@@ -1,0 +1,285 @@
+/************************************/
+Initial Server Setup with Ubuntu 18.04
+/************************************/
+
+Step 1 — Logging in as Root
+ssh root@173.249.53.147
+
+Step 2 — Creating a New User
+adduser datushim
+
+Step 3 — Granting Administrative Privileges
+usermod -aG sudo datushim
+
+Step 4 — Setting Up a Basic Firewall
+ufw app list
+ufw allow OpenSSH
+ufw enable
+ufw status
+
+Step 5 — Enabling External Access for Your Regular User
+ssh datushim@173.249.53.147
+
+/************************************/
+Set Up SSH Keys on Ubuntu 18.04
+/************************************/
+
+Step 1 — Create the RSA Key Pair
+[local] ssh-keygen
+
+Step 2 — Copy the Public Key to Ubuntu Server
+ssh-copy-id datushim@173.249.53.147
+
+Step 3 — Authenticate to Ubuntu Server Using SSH Keys
+ssh datushim@173.249.53.147
+
+Step 4 — Disable Password Authentication on your Server
+sudo nano /etc/ssh/sshd_config
+PasswordAuthentication no
+sudo systemctl restart ssh
+ssh root@173.249.53.147
+
+/************************************/
+Install (LAMP) stack on Ubuntu 18.04
+/************************************/
+Step 1 — Installing Apache and Updating the Firewall
+sudo apt update
+sudo apt install apache2
+sudo ufw app list
+sudo ufw app info "Apache Full"
+sudo ufw allow in "Apache Full"
+http://173.249.53.147
+
+Step 2 — Installing MySQL
+sudo apt install mysql-server
+sudo mysql_secure_installation
+sudo mysql
+SELECT user,authentication_string,plugin,host FROM mysql.user;
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'dAtushi1m.';
+FLUSH PRIVILEGES;
+SELECT user,authentication_string,plugin,host FROM mysql.user;
+exit
+
+Step 3 — Installing PHP
+sudo apt install php libapache2-mod-php php-mysql
+sudo nano /etc/apache2/mods-enabled/dir.conf
+
+<IfModule mod_dir.c>
+    DirectoryIndex index.html index.cgi index.pl index.php index.xhtml index.htm
+</IfModule>
+
+to
+
+<IfModule mod_dir.c>
+    DirectoryIndex index.php index.html index.cgi index.pl index.xhtml index.htm
+</IfModule>
+
+sudo systemctl restart apache2
+sudo systemctl status apache2
+apt search php- | less
+apt show php-cli
+sudo apt install php-cli
+
+Step 4 — Setting Up Virtual Hosts (Recommended)
+sudo mkdir /var/www/llnhswebmin.depedsk.com
+sudo chown -R $USER:$USER /var/www/llnhswebmin.depedsk.com
+nano /var/www/llnhswebmin.depedsk.com/index.html
+
+<html>
+    <head>
+        <title>Welcome to Your_domain!</title>
+    </head>
+    <body>
+        <h1>Success!  The your_domain server block is working!</h1>
+    </body>
+</html>
+
+sudo nano /etc/apache2/sites-available/llnhswebmin.depedsk.com.conf
+
+<VirtualHost *:80>
+    ServerAdmin datushimonline@gmail.com
+    ServerName llnhswebmin.depedsk.com
+    ServerAlias www.llnhswebmin.depedsk.com
+    DocumentRoot /var/www/llnhswebmin.depedsk.com
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+sudo a2ensite llnhswebmin.depedsk.com.conf
+sudo a2dissite 000-default.conf
+sudo apache2ctl configtest
+sudo systemctl restart apache2
+open in browser http://llnhswebmin.depedsk.com
+
+Step 5 — Testing PHP Processing on your Web Server
+sudo nano /var/www/llnhswebmin.depedsk.com/info.php
+
+<?php
+phpinfo();
+?>
+
+open in browser http://llnhswebmin.depedsk.com/info.php
+sudo rm /var/www/llnhswebmin.depedsk.com/info.php
+
+/************************************/
+Secure Apache with Let's Encrypt on Ubuntu 18.04
+/************************************/
+Step 1 — Installing Certbot
+sudo add-apt-repository ppa:certbot/certbot
+sudo apt install python-certbot-apache
+
+Step 2 — Set Up the SSL Certificate
+sudo nano /etc/apache2/sites-available/llnhswebmin.depedsk.com.conf
+ServerName llnhswebmin.depedsk.com;
+sudo apache2ctl configtest
+sudo systemctl reload apache2
+
+Step 3 — Allowing HTTPS Through the Firewall
+sudo ufw status
+sudo ufw allow 'Apache Full'
+sudo ufw delete allow 'Apache'
+sudo ufw status
+
+Step 4 — Obtaining an SSL Certificate
+sudo certbot --apache -d llnhswebmin.depedsk.com -d www.llnhswebmin.depedsk.com
+
+Step 5 — Verifying Certbot Auto-Renewal
+sudo certbot renew --dry-run
+
+/************************************/
+Install Webmin on Ubuntu 18.04
+/************************************/
+Step 1 — Installing Webmin
+sudo nano /etc/apt/sources.list
+
+add to bottom
+deb http://download.webmin.com/download/repository sarge contrib
+
+wget http://www.webmin.com/jcameron-key.asc
+sudo apt-key add jcameron-key.asc
+sudo apt update 
+sudo apt install webmin
+
+rm /var/www/llnhswebmin.depedsk.com/index.html
+
+Step 2 — Securing Webmin with Apache and Let’s Encrypt
+sudo nano /etc/apache2/sites-available/llnhswebmin.depedsk.com.conf
+
+
+<VirtualHost *:80>
+        ServerAdmin datushimonline@gmail.com
+        ServerName llnhswebmin.depedsk.com
+        ProxyPass / http://localhost:10000/
+        ProxyPassReverse / http://localhost:10000/
+</VirtualHost>
+
+sudo nano /etc/webmin/miniserv.conf
+
+ssl=1 to ssl=0
+
+sudo nano /etc/webmin/config
+referers=llnhswebmin.depedsk.com
+sudo systemctl restart webmin
+sudo a2enmod proxy_http
+sudo a2ensite llnhswebmin.depedsk.com
+sudo systemctl restart apache2
+
+open in browser http://llnhswebmin.depedsk.com
+
+sudo certbot --apache --email datushimonline@gmail.com -d llnhswebmin.depedsk.com --agree-tos --redirect --noninteractive
+
+/************************************/
+MOODLE step-by-step Installation Guide for Ubuntu 18.04
+/************************************/
+Step 1: Install Ubuntu
+DONE
+
+Step 2: Install Apache/MySQL/PHP
+sudo apt install apache2 mysql-client mysql-server php libapache2-mod-php
+
+Step 3: Install Additional Software
+sudo apt install graphviz aspell ghostscript clamav php-pspell php-curl php-gd php-intl php-mysql php-xml php-xmlrpc php-ldap php-zip php-soap php-mbstring
+sudo service apache2 restart
+sudo apt install git
+
+Step 4: Download Moodle
+cd /opt
+sudo git clone git://git.moodle.org/moodle.git
+cd moodle
+sudo git branch --track MOODLE_38_STABLE origin/MOODLE_38_STABLE
+sudo git checkout MOODLE_38_STABLE
+
+Step 5: Copy local repository to /var/www/llnhs.depedsk.com/
+sudo cp -R /opt/moodle /var/www/llnhs.depedsk.com/
+sudo mkdir /var/moodledata
+sudo chown -R www-data /var/moodledata
+sudo chmod -R 777 /var/moodledata
+sudo chmod -R 0755 /var/www/llnhs.depedsk.com/
+
+Step 6: Setup MySQL Server
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+default_storage_engine = innodb
+innodb_file_per_table = 1
+innodb_file_format = Barracuda
+sudo service mysql restart
+sudo mysql -u root -p
+CREATE DATABASE moodle DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+create user 'moodleuser'@'localhost' IDENTIFIED BY 'dAtushi1m.';
+GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,CREATE TEMPORARY TABLES,DROP,INDEX,ALTER ON moodle.* TO moodleuser@localhost IDENTIFIED BY 'dAtushi1m.';
+quit;
+
+Step 7: Complete Setup
+sudo chmod -R 777 /var/www/llnhs.depedsk.com/
+
+After you have ran the installer and you have moodle setup, you NEED to revert permissions so that it is no longer writable using the below command.
+
+sudo chmod -R 0755 /var/www/llnhs.depedsk.com/
+
+open in browser http://llnhs.depedsk.com
+
+Step 8: Additionals
+System Paths After Install
+
+Navigate, on the moodle webpage, to Site Administration > Server > System Paths 
+Path to du: /usr/bin/du
+Path to apsell: /usr/bin/aspell
+Path to dot: /usr/bin/dot 
+
+Enable Zend OpCache/Change Document Root
+cd /etc/php/7.2/mods-available/opcache.ini
+[opcache]
+opcache.enable = 1
+opcache.memory_consumption = 128
+opcache.max_accelerated_files = 8000
+opcache.revalidate_freq = 60
+
+; Required for Moodle
+opcache.use_cwd = 1
+opcache.validate_timestamps = 1
+opcache.save_comments = 1
+opcache.enable_file_override = 0
+
+; If something does not work in Moodle
+;opcache.revalidate_path = 1 ; May fix problems with include paths
+;opcache.mmap_base = 0x20000000 ; (Windows only) fix OPcache crashes with event id 487
+
+; Experimental for Moodle 2.6 and later
+;opcache.fast_shutdown = 1
+;opcache.enable_cli = 1 ; Speeds up CLI cron
+;opcache.load_comments = 0 ; May lower memory use, might not be compatible with add-ons and other apps.
+
+
+sudo service apache2 restart
+
+You need to edit the following three settings in your php.ini file located at: /etc/php5/apache2/ Here are a set of instructions to follow line by line.
+
+    Type "sudo nano /etc/php5/apache2/php.ini"
+    Press Ctrl and W and type "post_max_size"
+    Change the value to the number of Mb you want your site to accept as uploads
+    Press Ctrl and W and type "upload_max_filesize"
+    Change the value to the number of Mb you want your site to accept as uploads
+    Press Ctrl and W and type "max_execution_time"
+    Change the value to 600
+    Press Ctrl and O
+    Press Ctrl and X
+    Type sudo apachectl restart
